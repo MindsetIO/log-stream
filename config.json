@@ -1,0 +1,10 @@
+{
+  "SSH_INVALID": {
+    "logfile": "/var/log/auth.log",
+    "regex": "Invalid user|Connection closed by authenticating user"
+  },
+  "UFW_BLOCK": {
+    "logfile": "/var/log/syslog",
+    "regex": "UFW BLOCK"
+  }
+}

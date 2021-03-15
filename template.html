@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Log Tracker</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.1/css/bulma.min.css">
+    <link rel="stylesheet" href="https://cdn.materialdesignicons.com/5.8.55/css/materialdesignicons.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dayjs/1.10.4/dayjs.min.js" integrity="sha512-0fcCRl828lBlrSCa8QJY51mtNqTcHxabaXVLPgw/jPA5Nutujh6CbTdDgRzl9aSPYW/uuE7c4SffFUQFBAy6lg==" crossorigin="anonymous"></script>
+    <style type="text/css">
+        html {
+            overflow: auto;
+        }
+
+        .table {
+            counter-reset: row-num -2;
+        }
+
+        table tr {
+            counter-increment: row-num;
+        }
+
+        table tr td:first-child::before {
+            content: counter(row-num) "";
+        }
+
+        abbr[title] {
+            border-bottom: none;
+            text-decoration: none;
+        }
+
+        svg {
+            display: block;
+            margin: 0 auto;
+            position: relative;
+        }
+
+        .bkg {
+
+        }
+
+    </style>
+</head>
+<body>
+<div class="container">
+    <section class="section">
+        <div class="tile is-ancestor">
+            <div class="tile is-6 is-parent">
+                <div class="tile is-child box">
+                    <p class="title"><i class="mdi mdi-map"></i> live events</p>
+                    <div class="table-container">
+                        <table class="table is-family-monospace has-text-centered is-narrow is-fullwidth is-hoverable" id="table">
+                            {% for w in ['thead', 'tfoot'] %}
+                                {{ '<' ~ w ~ '>' }}
+                                <tr>
+                                    {% for hdr in ["#", "type", "time", "host", "src IP <small class='has-text-weight-normal has-text-7'>port</small>", "geo"] %}
+                                        <th>{{ hdr }}</th>
+                                    {% endfor %}
+                                </tr>
+                                {{ '</' ~ w ~ '>' }}
+                            {% endfor %}
+                            <tbody id="tbody" class="is-size-7"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="tile is-6 is-vertical is-parent">
+                <div class="tile is-child box">
+                    <p class="title"><i class="mdi mdi-map-marker"></i> event map</p>
+                    <svg id="worldMap" xmlns="http://www.w3.org/2000/svg" version="1.1" x="0" y="0" viewBox="0 0 100 50" preserveAspectRatio="xMinYMin"></svg>
+                </div>
+                <div class="tile is-child box">
+                    <p class="title">stats</p>
+                    <p>tbd</p>
+                </div>
+            </div>
+
+        </div>
+    </section>
+</div>
+
+<script type="application/ld+json" id="msioUsername">{{ username|tojson|safe }}</script>
+<script type="application/ld+json" id="appIdn">{{ app_idn|tojson|safe }}</script>
+<script type="application/ld+json" id="datablock">{{ data|tojson|safe }}</script>
+<script type="application/ld+json" id="tablelen">{{ tablelen }}</script>
+<script type="application/ld+json" id="world">{{ world|safe }}</script>
+
+<script>
+    const table = document.getElementById("tbody");
+    const data = JSON.parse(document.getElementById("datablock").innerHTML);
+    const tablelen = JSON.parse(document.getElementById("tablelen").innerHTML);
+    const msioUsername = JSON.parse(document.getElementById("msioUsername").innerHTML);
+    const appIdn = JSON.parse(document.getElementById("appIdn").innerHTML);
+    const world = JSON.parse(document.getElementById("world").innerHTML);
+    const worldMap = document.getElementById('worldMap');
+    const svgns = "http://www.w3.org/2000/svg";
+    const cont_color = {
+        'Ocean': "#000",
+        'Antarctica': "#fff",
+        'South America': "#6b9da4",
+        'Oceania': "#e4841d",
+        'Africa': "#d84122",
+        'North America': "#601de4",
+        'Asia': "#a71e1b",
+        'Europe': "#756e1e"
+    }
+    const typeMap = {
+        "SSH_AUTH": {"icon": "account-cancel-outline ", "color": "#007bff"},
+        "SSH_INVALID": {"icon": "account-question-outline", "color": "#8f009f"},
+        "UFW_BLOCK": {"icon": "fire", "color": "#f00"}
+    }
+    const recColor = 'green';
+    const recOpacity = 0.3;
+
+    function addRow(record) {
+        const geoip = record.geoip;
+        const city = record.geoip.city ? ` (${geoip.city})` : '';
+        const row = table.insertRow(0);
+        const rtype = `<abbr title="${record.type}"><i class="mdi mdi-${typeMap[record.type].icon}" style="color:${typeMap[record.type].color}"></i></abbr>`;
+        row.insertCell(0);
+        const cell1 = row.insertCell(1);
+        const cell2 = row.insertCell(2);
+        const cell3 = row.insertCell(3);
+        const cell4 = row.insertCell(4);
+        const cell5 = row.insertCell(5);
+        cell1.innerHTML = rtype;
+        cell2.innerHTML = dayjs(record.timestamp).format("MMM'DD HH:mm:ss");
+        cell3.innerHTML = record.host;
+        cell4.innerHTML = `${record.SRC} <small>${record.DPT}</small>`;
+        cell5.innerHTML = `<abbr class="has-text-left" title="${geoip.country}${city}">${geoip.iso_code}</abbr>`;
+    }
+
+    function addCircle(lat, lon, radius, color, opacity) {
+        const circ = document.createElementNS(svgns, 'circle');
+        const y = 55 - (lat + 90) / 180 * 53;
+        const x = (lon + 180) / 360 * 100;
+        circ.setAttributeNS(null, 'cx', `${x}`);
+        circ.setAttributeNS(null, 'cy', `${y}`);
+        circ.setAttributeNS(null, 'r', radius ? radius : '0.7');
+        circ.setAttributeNS(null, 'fill', color ? color : recColor);
+        circ.setAttributeNS(null, 'fill-opacity', `${opacity ? opacity : recOpacity}`);
+        circ.setAttribute("class", "bkg");
+        worldMap.appendChild(circ);
+    }
+
+    (data || []).forEach(rec => {
+        if (rec != null) {
+            addRow(rec);
+            addCircle(rec.geoip.coords.lat, rec.geoip.coords.lon, null, typeMap[rec.type].color);
+
+        }
+    });
+
+    world.continent.forEach((cont, idx) => {
+        const lat = world.lat[idx];
+        const lon = world.lon[idx];
+        if (cont !== 'Ocean') addCircle(lat, lon, 0.5, cont_color[cont], 0.1);
+    })
+
+    try {
+        const conn_url = `wss://ws.mindset.io/${msioUsername}/${appIdn}`
+        let wsock = new WebSocket(conn_url);
+        wsock.onopen = function (e) {
+            console.log("[open] Connection established");
+            wsock.send(JSON.stringify("WS client connected"));
+        };
+
+        wsock.onmessage = function (event) {
+            let msg = JSON.parse(event.data);
+            const record = msg.payload.record;
+            const coords = record.geoip.coords;
+            addRow(record);
+            addCircle(coords.lat, coords.lon, null, typeMap[record.type].color);
+            if (table.rows.length > tablelen) table.deleteRow(table.rows.length - 1);
+        };
+
+        wsock.onclose = function (event) {
+            if (event.wasClean) {
+                console.log(`[close] Connection closed cleanly, code=${event.code} reason=${event.reason}`);
+            } else {
+                console.log('[close] Connection died');
+            }
+        };
+
+        wsock.onerror = function (error) {
+            console.log(`[error] ${error.message}`);
+        }
+    } catch (e) {
+        console.log(e)
+    }
+</script>
+</body>
+</html>
