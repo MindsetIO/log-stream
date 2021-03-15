@@ -104,9 +104,11 @@ def make_page(history, tablelen):
 
 
 def main(record, history=None, tablelen=10):
-    func_name = f"parse_{record['type'].lower()}"
-    rec = globals()[func_name](record["content"])
-    html = make_page((history or []) + [rec], tablelen)
+    if bool(rec := record):
+        func_name = f"parse_{record['type'].lower()}"
+        rec = globals()[func_name](record["content"])
+    data = (history or []) + [rec] if rec else []
+    html = make_page(data, tablelen)
     return {"record": rec, "html": html}
 
 
@@ -121,6 +123,7 @@ if __name__ == "__main__":  # Local testing
     os.environ["MSIO_USERNAME"] = "local-user"
     os.environ["MSIO_APP_ALIAS"] = "log-tracker"
     history, tablelen = [], 15
+    main("", history, tablelen=tablelen)
     for record in stream_data():
         resp = main(record, history, tablelen=tablelen)
         history.append(resp["record"])
