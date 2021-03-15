@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+from collections import defaultdict
 from datetime import datetime as dt
 from functools import wraps
 import json
@@ -94,8 +95,20 @@ def geo_data(ipaddr):
 
 
 def make_page(history, tablelen):
+    adct, sdct = {}, defaultdict(list)
     for rec in history:
-        print(rec["host"], rec["type"])
+        sdct[rec["type"]].append(dt.fromisoformat(rec["timestamp"][:-1]))
+    for k, v in sdct.items():
+        # prn(v, p=k)
+        tdiff = [(t1 - t0).total_seconds() for t1, t0 in zip(v[:-1], v[1:])]
+        try:
+            adct[k] = {
+                "rate_min": 60 / sum(tdiff) * len(tdiff),
+                "count": len(v),
+            }
+        except ZeroDivisionError:
+            pass
+    print(adct)
     params = {
         "data": history,
         "tablelen": tablelen,
@@ -109,7 +122,6 @@ def make_page(history, tablelen):
 
 
 def main(logline, record=None, tablelen=10):
-    print(logline)
     new_record = None
     if logline:
         func_name = f"parse_{logline['type'].lower()}"
