@@ -109,6 +109,7 @@ def make_page(history, tablelen):
 
 
 def main(logline, record=None, tablelen=10):
+    print(logline)
     new_record = None
     if logline:
         func_name = f"parse_{logline['type'].lower()}"
