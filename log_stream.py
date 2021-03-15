@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+from datetime import datetime as dt
 import json
 import logging
 import multiprocessing as mp
@@ -39,12 +40,14 @@ class LogStream:
                 time.sleep(0.1)
 
     def post_record(self, record):
+        timestamp = f"{dt.utcnow().isoformat()}Z"
         data = json.dumps(
             {
                 "data": {
                     "record": {
                         "type": self.rec_type,
                         "content": record,
+                        "timestamp": timestamp,
                     }
                 }
             }

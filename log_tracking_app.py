@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
-from collections import deque
-from datetime import datetime
+from datetime import datetime as dt
 from functools import wraps
 import json
 import os
@@ -19,16 +18,20 @@ with open("world.json") as fh:
 
 
 def format_timestamp(mo, day, hhmm):
-    _ts = f"{datetime.today().year} {mo} {int(day):2d} {hhmm}"
-    timestamp = datetime.strptime(_ts, "%Y %b %d %X")
+    _ts = f"{dt.today().year} {mo} {int(day):2d} {hhmm}"
+    timestamp = dt.strptime(_ts, "%Y %b %d %X")
     return timestamp
 
 
-def record_parse(content, split_with):
-    meta, rec = content.split(split_with)
+def record_parse(logline, split_with):
+    meta, rec = logline["content"].split(split_with)
     mo, day, hhmm, host, *_ = [s for s in meta.split(" ") if s]
-    timestamp = format_timestamp(mo, day, hhmm)
-    common = {"host": host, "timestamp": f"{timestamp}"}
+    event_time = format_timestamp(mo, day, hhmm)
+    common = {
+        "host": host,
+        "event_time": f"{event_time}",
+        "timestamp": logline["timestamp"],
+    }
     return common, rec.split(" ")
 
 
@@ -48,8 +51,8 @@ def log_decorator(ip_key):
 
 
 @log_decorator("SRC")
-def parse_ufw_block(content):
-    common_dct, rec = record_parse(content, " [UFW BLOCK] ")
+def parse_ufw_block(logline):
+    common_dct, rec = record_parse(logline, " [UFW BLOCK] ")
     parsed_dct = {
         ss[0]: ss[1] or None for s in rec if len(ss := s.split("=")) == 2
     }
@@ -57,13 +60,13 @@ def parse_ufw_block(content):
 
 
 @log_decorator("SRC")
-def parse_ssh_invalid(content):
+def parse_ssh_invalid(logline):
     for split_by, record_type, idxs in [
         (": Invalid user ", "SSH_INVALID", [4, 2, 0]),
         (": Connection closed by authenticating user ", "SSH_AUTH", [3, 1, 0]),
     ]:
         try:
-            common_dct, rec = record_parse(content, split_by)
+            common_dct, rec = record_parse(logline, split_by)
             parsed_dct = {
                 "DPT": rec[idxs[0]],
                 "SRC": rec[idxs[1]],
@@ -91,6 +94,8 @@ def geo_data(ipaddr):
 
 
 def make_page(history, tablelen):
+    for rec in history:
+        print(rec["host"], rec["type"])
     params = {
         "data": history,
         "tablelen": tablelen,
@@ -103,14 +108,14 @@ def make_page(history, tablelen):
     return html
 
 
-def main(record, history=None, tablelen=10):
-    print(f"{history=}")
-    if bool(rec := record):
-        func_name = f"parse_{record['type'].lower()}"
-        rec = globals()[func_name](record["content"])
-    data = (history or {}).get("record", []) + [rec] if rec else []
-    html = make_page(data, tablelen)
-    return {"record": rec, "html": html}
+def main(logline, record=None, tablelen=10):
+    new_record = None
+    if logline:
+        func_name = f"parse_{logline['type'].lower()}"
+        new_record = globals()[func_name](logline)
+    history = (record or []) + [new_record] if new_record else []
+    html = make_page(history, tablelen)
+    return {"record": new_record, "html": html}
 
 
 if __name__ == "__main__":  # Local testing
@@ -121,12 +126,15 @@ if __name__ == "__main__":  # Local testing
                 if line := line.strip():
                     yield json.loads(line)
 
-    os.environ["MSIO_USERNAME"] = "local-user"
-    os.environ["MSIO_APP_ALIAS"] = "log-tracker"
-    history, tablelen = {'record': []}, 15
-    for record in stream_data():
-        resp = main(record, history, tablelen=tablelen)
-        history['record'].append(resp["record"])
+    os.environ["MSIO_USERNAME"] = "msio-team"
+    os.environ["MSIO_APP_ALIAS"] = "logtrack"
+    tablelen = 10
+
+    # Locally simlulate stream
+    record = []
+    for logline in stream_data():
+        resp = main(logline, record, tablelen=tablelen)
+        record.append(resp["record"])
 
     with open(f"/tmp/page.html", "w") as f:
         f.write(resp["html"])
