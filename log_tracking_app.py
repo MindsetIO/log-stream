@@ -104,6 +104,7 @@ def make_page(history, tablelen):
 
 
 def main(record, history=None, tablelen=10):
+    print(f"{history=}")
     if bool(rec := record):
         func_name = f"parse_{record['type'].lower()}"
         rec = globals()[func_name](record["content"])
