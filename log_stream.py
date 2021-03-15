@@ -44,7 +44,7 @@ class LogStream:
         data = json.dumps(
             {
                 "data": {
-                    "record": {
+                    "logline": {
                         "type": self.rec_type,
                         "content": record,
                         "timestamp": timestamp,
