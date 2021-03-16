@@ -89,6 +89,7 @@
 <script type="application/ld+json" id="msioUsername">{{ username | tojson | safe }}</script>
 <script type="application/ld+json" id="appIdn">{{ app_idn | tojson | safe }}</script>
 <script type="application/ld+json" id="datablock">{{ data | tojson |safe }}</script>
+<script type="application/ld+json" id="stats">{{ stats|tojson|safe }}</script>
 <script type="application/ld+json" id="tablelen">{{ tablelen }}</script>
 <script type="application/ld+json" id="worldMarkers">{{ world | safe }}</script>
 
@@ -98,6 +99,8 @@
     const tablelen = JSON.parse(document.getElementById("tablelen").innerHTML);
     const msioUsername = JSON.parse(document.getElementById("msioUsername").innerHTML);
     const appIdn = JSON.parse(document.getElementById("appIdn").innerHTML);
+    const stats = JSON.parse(document.getElementById("stats").innerHTML);
+    console.log(stats)
     const world = JSON.parse(document.getElementById("worldMarkers").innerHTML);
     const worldMap = document.getElementById('worldMap');
     const svgns = "http://www.w3.org/2000/svg";

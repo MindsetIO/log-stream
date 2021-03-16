@@ -94,13 +94,12 @@ def geo_data(ipaddr):
     return dct
 
 
-def make_page(history, tablelen):
+def make_stats(history):
     adct, sdct = {}, defaultdict(list)
     for rec in history:
         sdct[rec["type"]].append(dt.fromisoformat(rec["timestamp"][:-1]))
     for k, v in sdct.items():
-        # prn(v, p=k)
-        tdiff = [(t1 - t0).total_seconds() for t1, t0 in zip(v[:-1], v[1:])]
+        tdiff = [(t1 - t0).total_seconds() for t0, t1 in zip(v[:-1], v[1:])]
         try:
             adct[k] = {
                 "rate_min": 60 / sum(tdiff) * len(tdiff),
@@ -108,11 +107,15 @@ def make_page(history, tablelen):
             }
         except ZeroDivisionError:
             pass
-    print(adct)
+    return adct
+
+
+def make_page(history, tablelen, stats):
     params = {
         "data": history,
         "tablelen": tablelen,
         "world": WORLD_JSON,
+        "stats": stats,
         "username": os.environ.get("MSIO_USERNAME"),
         "app_idn": os.environ.get("MSIO_APP_ALIAS")
         or os.environ.get("MSIO_APP_ID"),
@@ -127,8 +130,9 @@ def main(logline, record=None, tablelen=10):
         func_name = f"parse_{logline['type'].lower()}"
         new_record = globals()[func_name](logline)
     history = (record or []) + [new_record] if new_record else []
-    html = make_page(history, tablelen)
-    return {"record": new_record, "html": html}
+    stats = make_stats(history)
+    html = make_page(history, tablelen, stats)
+    return {"record": new_record, "html": html, "stats": stats}
 
 
 if __name__ == "__main__":  # Local testing
