@@ -106,7 +106,7 @@ def make_stats(history):
         tdiff = [(t1 - t0).total_seconds() for t0, t1 in zip(v[:-1], v[1:])]
         aggdct[k] = {"count": len(v)}
         try:
-            aggdct[k] = {
+            aggdct[k] |= {
                 "rate_min": 60 / sum(tdiff) * len(tdiff),
             }
         except ZeroDivisionError:
