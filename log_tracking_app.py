@@ -96,22 +96,22 @@ def geo_data(ipaddr):
 
 def make_stats(history):
 
-    adct, sdct = {}, defaultdict(list)
+    sdct = defaultdict(list)
     for rec in history:
-        print(rec)
         if rec is None:
             continue
         sdct[rec["type"]].append(dt.fromisoformat(rec["timestamp"][:-1]))
+    aggdct = {}
     for k, v in sdct.items():
         tdiff = [(t1 - t0).total_seconds() for t0, t1 in zip(v[:-1], v[1:])]
+        aggdct[k] = {"count": len(v)}
         try:
-            adct[k] = {
+            aggdct[k] = {
                 "rate_min": 60 / sum(tdiff) * len(tdiff),
-                "count": len(v),
             }
         except ZeroDivisionError:
             pass
-    return adct
+    return aggdct
 
 
 def make_page(history, tablelen, stats):
