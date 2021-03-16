@@ -95,6 +95,7 @@ def geo_data(ipaddr):
 
 
 def make_stats(history):
+    print(history)
     adct, sdct = {}, defaultdict(list)
     for rec in history:
         sdct[rec["type"]].append(dt.fromisoformat(rec["timestamp"][:-1]))
