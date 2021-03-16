@@ -21,7 +21,7 @@
             counter-increment: row-num;
         }
 
-        table tr td:first-child::before {
+        table tr.counter td:first-child::before {
             content: counter(row-num) "";
         }
 
@@ -44,7 +44,7 @@
         <div class="tile is-ancestor">
             <div class="tile is-6 is-parent">
                 <div class="tile is-child box">
-                    <p class="title"><i class="mdi mdi-flash-outline"></i> live events</p>
+                    <p class="title"><i class="mdi mdi-flash-outline has-text-primary"></i> live events</p>
                     <div class="table-container">
                         <table class="table is-family-monospace has-text-centered is-narrow is-fullwidth is-hoverable" id="table">
                             {% for w in ['thead', 'tfoot'] %}
@@ -63,21 +63,21 @@
             </div>
             <div class="tile is-6 is-vertical is-parent">
                 <div class="tile is-child box">
-                    <p class="title"><i class="mdi mdi-map-marker"></i> event map</p>
+                    <p class="title"><i class="mdi mdi-map-marker has-text-primary"></i> event map</p>
                     <svg id="worldMap" xmlns="http://www.w3.org/2000/svg" version="1.1" x="0" y="0" viewBox="0 0 100 50" preserveAspectRatio="xMinYMin"></svg>
                 </div>
                 <div class="tile is-child box">
-                    <p class="title"><i class="mdi mdi-table"></i> stats</p>
+                    <p class="title"><i class="mdi mdi-table has-text-primary"></i> stats</p>
                     <div class="table-container">
-                        <table class="table is-family-monospace has-text-centered is-narrow is-fullwidth is-hoverable" id="table">
+                        <table class="table count is-family-monospace has-text-centered is-narrow is-fullwidth is-hoverable" id="table">
                             <thead>
                             <tr>
-                                {% for hdr in ["type", "count", "rate"] %}
+                                {% for hdr in ["type", "count", "rate / min"] %}
                                     <th>{{ hdr }}</th>
                                 {% endfor %}
                             </tr>
                             </thead>
-                            <tbody id="statsbody" class="is-size-7"></tbody>
+                            <tbody id="statsBody" class="is-size-7"></tbody>
                         </table>
                     </div>
                 </div>
@@ -99,10 +99,9 @@
     const tablelen = JSON.parse(document.getElementById("tablelen").innerHTML);
     const msioUsername = JSON.parse(document.getElementById("msioUsername").innerHTML);
     const appIdn = JSON.parse(document.getElementById("appIdn").innerHTML);
-    const stats = JSON.parse(document.getElementById("stats").innerHTML);
-    console.log(stats)
     const world = JSON.parse(document.getElementById("worldMarkers").innerHTML);
     const worldMap = document.getElementById('worldMap');
+    const statsBody = document.getElementById('statsBody');
     const svgns = "http://www.w3.org/2000/svg";
     const cont_color = {
         'Ocean': "#000",
@@ -126,6 +125,7 @@
         const geoip = record.geoip;
         const city = record.geoip.city ? ` (${geoip.city})` : '';
         const row = table.insertRow(0);
+        row.classList.add("counter");
         const rtype = `<abbr title="${record.type}"><i class="mdi mdi-${typeMap[record.type].icon}" style="color:${typeMap[record.type].color}"></i></abbr>`;
         row.insertCell(0);
         const cell1 = row.insertCell(1);
@@ -138,6 +138,11 @@
         cell3.innerHTML = record.host;
         cell4.innerHTML = `${record.SRC} <small>${record.DPT}</small>`;
         cell5.innerHTML = `<abbr class="has-text-left" title="${geoip.country}${city}">${geoip.iso_code}</abbr>`;
+        if (table.rows.length > tablelen) {
+            Array.from(Array(table.rows.length - tablelen)).forEach(() => {
+                table.deleteRow(table.rows.length - 1);
+            });
+        }
     }
 
     function addCircle(lat, lon, radius, color, opacity) {
@@ -149,42 +154,56 @@
         circ.setAttributeNS(null, 'r', radius ? radius : '0.7');
         circ.setAttributeNS(null, 'fill', color ? color : recColor);
         circ.setAttributeNS(null, 'fill-opacity', `${opacity ? opacity : recOpacity}`);
-        circ.setAttribute("class", "bkg");
         worldMap.appendChild(circ);
     }
 
-    (data || []).forEach((rec, idx) => {
-        if (rec != null) {
-            if (idx < tablelen) addRow(rec);
-            addCircle(rec.geoip.coords.lat, rec.geoip.coords.lon, null, typeMap[rec.type].color);
-        }
-    });
+    function addRecord(record) {
+        addRow(record);
+        addCircle(record.geoip.coords.lat, record.geoip.coords.lon, null, typeMap[record.type].color);
+    }
 
+    function makeStats(stats) {
+        statsBody.innerHTML = "";
+        Object.entries(stats).forEach(([k, v]) => {
+            const row = statsBody.insertRow(0);
+            const cell0 = row.insertCell(0);
+            const cell1 = row.insertCell(1);
+            const cell2 = row.insertCell(2);
+            let icon = typeMap[k];
+
+            cell0.innerHTML = `<i class="mdi mdi-${icon.icon}" style="color:${icon.color}"></i> <strong>${k}</strong>`;
+            cell1.innerHTML = v.count;
+            cell2.innerHTML = v.rate_min ? v.rate_min.toFixed(2) : "N/A";
+        })
+    }
+
+
+    // World map markers
     world.continent.forEach((cont, idx) => {
         const lat = world.lat[idx];
         const lon = world.lon[idx];
         if (cont !== 'Ocean') addCircle(lat, lon, 0.5, cont_color[cont], 0.1);
-    })
+    });
 
+    (data || []).forEach(rec => {
+        if (rec != null) addRecord(rec);
+    });
+
+    makeStats(JSON.parse(document.getElementById("stats").innerHTML));
+
+    // websockets handler
     try {
         const conn_url = `wss://ws.mindset.io/${msioUsername}/${appIdn}`
         let wsock = new WebSocket(conn_url);
         wsock.onopen = function (e) {
-            console.log("[open] Connection established");
+            console.log(`[open] websocket established at ${conn_url}`);
             wsock.send(JSON.stringify("WS client connected"));
         };
 
         wsock.onmessage = function (event) {
             let msg = JSON.parse(event.data);
-            const record = msg.payload.record;
-            const coords = record.geoip.coords;
-            addRow(record);
-            addCircle(coords.lat, coords.lon, null, typeMap[record.type].color);
-            if (table.rows.length > tablelen) {
-                Array.from(Array(table.rows.length - tablelen)).forEach(() => {
-                    table.deleteRow(table.rows.length - 1);
-                });
-            }
+            addRecord(msg.payload.record);
+            makeStats(msg.payload.stats);
         };
 
         wsock.onclose = function (event) {
