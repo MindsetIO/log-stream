@@ -43,7 +43,7 @@ class LogStream:
         timestamp = f"{dt.utcnow().isoformat()}Z"
         data = json.dumps(
             {
-                "data": {
+                "args": {
                     "logline": {
                         "type": self.rec_type,
                         "content": record,
