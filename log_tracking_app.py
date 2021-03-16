@@ -98,6 +98,7 @@ def make_stats(history):
 
     adct, sdct = {}, defaultdict(list)
     for rec in history:
+        print(rec)
         if rec is None:
             continue
         sdct[rec["type"]].append(dt.fromisoformat(rec["timestamp"][:-1]))
