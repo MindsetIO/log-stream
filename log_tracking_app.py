@@ -95,9 +95,11 @@ def geo_data(ipaddr):
 
 
 def make_stats(history):
-    print(history)
+
     adct, sdct = {}, defaultdict(list)
     for rec in history:
+        print(rec)
+        print(rec["type"], rec["timestamp"])
         sdct[rec["type"]].append(dt.fromisoformat(rec["timestamp"][:-1]))
     for k, v in sdct.items():
         tdiff = [(t1 - t0).total_seconds() for t0, t1 in zip(v[:-1], v[1:])]
