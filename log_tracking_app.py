@@ -102,15 +102,13 @@ def make_stats(history):
             continue
         sdct[rec["type"]].append(dt.fromisoformat(rec["timestamp"][:-1]))
     aggdct = {}
+    _lst = lambda lst: zip(lst[:-1], lst[1:])
     for k, v in sdct.items():
-        tdiff = [(t1 - t0).total_seconds() for t0, t1 in zip(v[:-1], v[1:])]
-        aggdct[k] = {"count": len(v)}
-        try:
-            aggdct[k] |= {
-                "rate_min": 60 / sum(tdiff) * len(tdiff),
-            }
-        except ZeroDivisionError:
-            pass
+        tdiff = [(t1 - t0).total_seconds() for t0, t1 in _lst(sorted(v))]
+        aggdct[k] = {
+            "count": len(v),
+            "rate_min": 60 / sum(tdiff) * len(tdiff) if len(tdiff) else None,
+        }
     return aggdct
 
 
