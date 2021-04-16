@@ -8,6 +8,7 @@ import os
 
 import geoip2.database
 from jinja2 import Environment, FileSystemLoader
+import requests
 
 
 GEO_DB_PATH = "/data/GeoIP2/GeoLite2-City.mmdb"
@@ -20,8 +21,7 @@ with open("world.json") as fh:
 
 def format_timestamp(mo, day, hhmm):
     _ts = f"{dt.today().year} {mo} {int(day):2d} {hhmm}"
-    timestamp = dt.strptime(_ts, "%Y %b %d %X")
-    return timestamp
+    return dt.strptime(_ts, "%Y %b %d %X")
 
 
 def record_parse(logline, split_with):
@@ -78,20 +78,37 @@ def parse_ssh_invalid(logline):
             pass
 
 
+# def geo_data(ipaddr):
+#     with geoip2.database.Reader(GEO_DB_PATH) as reader:
+#         city = reader.city(ipaddr)
+#     dct = {
+#         "iso_code": city.country.iso_code,
+#         "country": city.country.name,
+#         "subdivision": city.subdivisions.most_specific.iso_code,
+#         "city": city.city.name,
+#         "coords": {
+#             "lat": city.location.latitude,
+#             "lon": city.location.longitude,
+#         },
+#     }
+#     return dct
+
+
 def geo_data(ipaddr):
-    with geoip2.database.Reader(GEO_DB_PATH) as reader:
-        city = reader.city(ipaddr)
-    dct = {
-        "iso_code": city.country.iso_code,
-        "country": city.country.name,
-        "subdivision": city.subdivisions.most_specific.iso_code,
-        "city": city.city.name,
-        "coords": {
-            "lat": city.location.latitude,
-            "lon": city.location.longitude,
-        },
+    url = f"https://ipinfo.io/{ipaddr}"
+    resp = requests.get(url)
+    if resp.status_code != 200:
+        return
+    data = resp.json()
+    coords = [float(c) for c in data["loc"].split(",")]
+    return {
+        "country": data["country"],
+        "city": data["city"],
+        "coords": dict(zip(["lat", "lon"], coords)),
+        "region": data["region"],
+        "timezone": data["timezone"],
+        "org": data["org"],
     }
-    return dct
 
 
 def make_stats(history):
@@ -121,8 +138,7 @@ def make_page(history, tablelen, stats):
         "app_idn": os.environ.get("MSIO_APP_ALIAS")
         or os.environ.get("MSIO_APP_ID"),
     }
-    html = TEMPLATE.render(**params)
-    return html
+    return TEMPLATE.render(**params)
 
 
 def main(logline, record=None, tablelen=10):
