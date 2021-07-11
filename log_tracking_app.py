@@ -6,12 +6,10 @@ from functools import wraps
 import json
 import os
 
-import geoip2.database
 from jinja2 import Environment, FileSystemLoader
 import requests
 
 
-GEO_DB_PATH = "/data/GeoIP2/GeoLite2-City.mmdb"
 TEMPLATE_DIR = os.path.dirname(os.path.realpath(__file__))
 TEMPLATE_ENV = Environment(loader=FileSystemLoader(TEMPLATE_DIR))
 TEMPLATE = TEMPLATE_ENV.get_template("template.html")
@@ -76,22 +74,6 @@ def parse_ssh_invalid(logline):
             return common_dct, parsed_dct
         except ValueError:
             pass
-
-
-# def geo_data(ipaddr):
-#     with geoip2.database.Reader(GEO_DB_PATH) as reader:
-#         city = reader.city(ipaddr)
-#     dct = {
-#         "iso_code": city.country.iso_code,
-#         "country": city.country.name,
-#         "subdivision": city.subdivisions.most_specific.iso_code,
-#         "city": city.city.name,
-#         "coords": {
-#             "lat": city.location.latitude,
-#             "lon": city.location.longitude,
-#         },
-#     }
-#     return dct
 
 
 def geo_data(ipaddr):
