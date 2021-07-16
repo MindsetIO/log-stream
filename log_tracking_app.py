@@ -1,156 +1,118 @@
 #!/usr/bin/env python3
 
-from collections import defaultdict
-from datetime import datetime as dt
-from functools import wraps
+from collections import namedtuple
+from datetime import datetime, timezone as tz
 import json
-import os
 
-from jinja2 import Environment, FileSystemLoader
 import requests
 
 
-TEMPLATE_DIR = os.path.dirname(os.path.realpath(__file__))
-TEMPLATE_ENV = Environment(loader=FileSystemLoader(TEMPLATE_DIR))
-TEMPLATE = TEMPLATE_ENV.get_template("template.html")
-with open("world.json") as fh:
-    WORLD_JSON = fh.read()
+RECORD_NT = namedtuple("record", "type content timestamp")
+logdate = lambda m, d, dt: datetime.strptime(f"{m} {d} {dt}", "%b %d %X")
 
 
-def format_timestamp(mo, day, hhmm):
-    _ts = f"{dt.today().year} {mo} {int(day):2d} {hhmm}"
-    return dt.strptime(_ts, "%Y %b %d %X")
+class BaseRecord:
+    _FIELDS = [
+        "content",
+        "timestamp",
+        "logdate",
+        "user",
+        "ipaddr",
+        "ipinfo",
+        "port",
+        "data",
+    ]
 
+    def __init__(self, record):
+        self.data = None
+        self.logdate = None
+        self.ipaddr = None
+        self.ipinfo = None
+        self.port = None
+        self.user = None
+        self.content = record.content
+        self.timestamp = self._fromiso(record.timestamp)
 
-def record_parse(logline, split_with):
-    meta, rec = logline["content"].split(split_with)
-    mo, day, hhmm, host, *_ = [s for s in meta.split(" ") if s]
-    event_time = format_timestamp(mo, day, hhmm)
-    common = {
-        "host": host,
-        "event_time": f"{event_time}",
-        "timestamp": logline["timestamp"],
-    }
-    return common, rec.split(" ")
+    @classmethod
+    def from_record(cls, record):
+        obj = cls(record)
+        if hasattr(obj, "parse"):
+            obj.parse()
+        obj.ipinfo = obj.fetch_ip_info(obj.ipaddr)
+        return obj
 
+    @staticmethod
+    def _fromiso(timestamp):
+        return datetime.fromisoformat(timestamp[:-1]).replace(tzinfo=tz.utc)
 
-def log_decorator(ip_key):
-    def deco(func):
-        @wraps(func)
-        def wrapper(*args, **kwargs):
-            cdct, pdct = func(*args, **kwargs)
-            rec_type = func.__name__.removeprefix("parse_").upper()
-            geoip = geo_data(pdct[ip_key])
-            dct = {**cdct, **pdct, "type": rec_type, "geoip": geoip}
-            return dct
-
-        return wrapper
-
-    return deco
-
-
-@log_decorator("SRC")
-def parse_ufw_block(logline):
-    common_dct, rec = record_parse(logline, " [UFW BLOCK] ")
-    parsed_dct = {
-        ss[0]: ss[1] or None for s in rec if len(ss := s.split("=")) == 2
-    }
-    return common_dct, parsed_dct
-
-
-@log_decorator("SRC")
-def parse_ssh_invalid(logline):
-    for split_by, record_type, idxs in [
-        (": Invalid user ", "SSH_INVALID", [4, 2, 0]),
-        (": Connection closed by authenticating user ", "SSH_AUTH", [3, 1, 0]),
-    ]:
-        try:
-            common_dct, rec = record_parse(logline, split_by)
-            parsed_dct = {
-                "DPT": rec[idxs[0]],
-                "SRC": rec[idxs[1]],
-                "USERNAME": rec[idxs[2]],
-            }
-            return common_dct, parsed_dct
-        except ValueError:
-            pass
-
-
-def geo_data(ipaddr):
-    url = f"https://ipinfo.io/{ipaddr}"
-    resp = requests.get(url)
-    if resp.status_code != 200:
-        return
-    data = resp.json()
-    coords = [float(c) for c in data["loc"].split(",")]
-    return {
-        "country": data["country"],
-        "city": data["city"],
-        "coords": dict(zip(["lat", "lon"], coords)),
-        "region": data["region"],
-        "timezone": data["timezone"],
-        "org": data["org"],
-    }
-
-
-def make_stats(history):
-    sdct = defaultdict(list)
-    for rec in history or []:
-        if rec is None:
-            continue
-        sdct[rec["type"]].append(dt.fromisoformat(rec["timestamp"][:-1]))
-    aggdct = {}
-    _lst = lambda lst: zip(lst[:-1], lst[1:])
-    for k, v in sdct.items():
-        tdiff = [(t1 - t0).total_seconds() for t0, t1 in _lst(sorted(v))]
-        aggdct[k] = {
-            "count": len(v),
-            "rate_min": 60 / sum(tdiff) * len(tdiff) if len(tdiff) else None,
+    @staticmethod
+    def fetch_ip_info(ipaddr):
+        if ipaddr is None:
+            return
+        resp = requests.get(f"https://ipinfo.io/{ipaddr}")
+        if resp.status_code != 200:
+            return
+        data = resp.json()
+        coords = [float(c) for c in data["loc"].split(",")]
+        return {
+            "country": data["country"],
+            "city": data["city"],
+            "lat": coords[0],
+            "lon": coords[1],
+            "region": data["region"],
+            "timezone": data["timezone"],
+            "org": data.get("org"),
         }
-    return aggdct
+
+    def as_dict(self):
+        dct = {k: getattr(self, k) for k in self._FIELDS if hasattr(self, k)}
+        return {"type": self.__class__.__name__, **dct}
 
 
-def make_page(history, tablelen, stats):
-    params = {
-        "data": history,
-        "tablelen": tablelen,
-        "world": WORLD_JSON,
-        "stats": stats,
-        "username": os.environ.get("MSIO_USERNAME"),
-        "app_idn": os.environ.get("MSIO_APP_ALIAS")
-        or os.environ.get("MSIO_APP_ID"),
-    }
-    return TEMPLATE.render(**params)
+class SSH_INVALID(BaseRecord):
+    def __init__(self, record):
+        super().__init__(record)
+
+    def parse(self):
+        mo, day, daytime, host, *fields = self.content.split(" ")
+        self.user, self.ipaddr, self.port = fields[3::2]
+        self.logdate = logdate(mo, day, daytime)
 
 
-def main(logline, record=None, tablelen=10):
-    new_record = None
-    if logline:
-        func_name = f"parse_{logline['type'].lower()}"
-        new_record = globals()[func_name](logline)
-    history = (record or []) + [new_record] if new_record else []
-    stats = make_stats(history)
-    html = make_page(history, tablelen, stats)
-    return {"record": new_record, "html": html, "stats": stats}
+class UFW_BLOCK(BaseRecord):
+    def __init__(self, record):
+        super().__init__(record)
+
+    def parse(self):
+        meta, data = self.content.split(" [UFW BLOCK] ")
+        mo, day, daytime, host, *_ = meta.split(" ")
+        self.logdate = logdate(mo, day, daytime)
+        self.data = {}
+        for field in data.split(" "):
+            try:
+                k, v = field.split("=")
+            except ValueError:
+                k, v = field, None
+            self.data[k] = v
+        self.ipaddr = self.data["SRC"]
+
+
+def main(logrecord: dict):
+    raw_record = RECORD_NT(logrecord)
+    obj = globals()[raw_record.type].from_record(raw_record)
+    return obj.as_dict()
 
 
 if __name__ == "__main__":  # Local testing
 
     def stream_data():
-        with open("sample.jsonl") as f:
+        with open("samples.jsonl") as f:
             for line in f.readlines():
                 if line := line.strip():
-                    yield json.loads(line)
+                    yield RECORD_NT(**json.loads(line))
 
-    os.environ["MSIO_USERNAME"] = "msio-team"
-    os.environ["MSIO_APP_ALIAS"] = "logtrack"
-    tablelen = 10
-
-    # Locally simlulate stream
-    record = []
-    for logline in stream_data():
-        resp = main(logline, record, tablelen=tablelen)
-        record.append(resp["record"])
-
-    with open(f"/tmp/page.html", "w") as f:
-        f.write(resp["html"])
+    for en, rec in enumerate(stream_data()):
+        parsed_rec = globals()[rec.type].from_record(rec)
+        print(parsed_rec.as_dict())
+        if en == 3:
+            break

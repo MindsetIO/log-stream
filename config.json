@@ -1,4 +1,8 @@
 {
+  "settings": {
+    "app_idn": null,
+    "api_key": null
+  },
   "SSH_INVALID": {
     "logfile": "/var/log/auth.log",
     "regex": "Invalid user|Connection closed by authenticating user"
