@@ -47,15 +47,15 @@ class LogStream:
                 time.sleep(0.1)
 
     def post_record(self, record):
-        logline = {
+        logrecord = {
             "type": self.rec_type,
             "content": record,
             "timestamp": f"{dt.utcnow().isoformat()}Z",
         }
-        data = json.dumps({"args": {"logline": logline}})
-        with open("samples.jsonl", "a") as f:
-            json.dump(logline, f)
-            f.write("\n")
+        data = json.dumps({"args": {"logrecord": logrecord}})
+        # with open("samples.jsonl", "a") as f:
+        #     json.dump(logline, f)
+        #     f.write("\n")
         log.info(f"posting log record ({self.rec_type}): {record}")
         req = Request(self.api_url, **self.REQ_ARGS, data=data.encode("utf8"))
         try:

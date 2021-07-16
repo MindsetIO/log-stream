@@ -98,7 +98,7 @@ class UFW_BLOCK(BaseRecord):
 
 
 def main(logrecord: dict):
-    raw_record = RECORD_NT(logrecord)
+    raw_record = RECORD_NT(**logrecord)
     obj = globals()[raw_record.type].from_record(raw_record)
     return obj.as_dict()
 
