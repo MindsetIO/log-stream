@@ -43,6 +43,7 @@ class BaseRecord:
 
     @staticmethod
     def _fromiso(timestamp):
+        print(datetime.fromisoformat(timestamp[:-1]).replace(tzinfo=tz.utc))
         return datetime.fromisoformat(timestamp[:-1]).replace(tzinfo=tz.utc)
 
     @staticmethod
