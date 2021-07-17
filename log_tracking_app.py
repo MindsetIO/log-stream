@@ -43,13 +43,9 @@ class BaseRecord:
 
     @staticmethod
     def _fromiso(timestamp):
-        print(timestamp)
-        print(
-            f"{datetime.fromisoformat(timestamp[:-1]).replace(tzinfo=tz.utc)}"[
-                :-5
-            ]
-        )
-        return datetime.fromisoformat(timestamp[:-1]).replace(tzinfo=tz.utc)
+        return datetime.fromisoformat(
+            timestamp[:-1]
+        )  # .replace(tzinfo=tz.utc)
 
     @staticmethod
     def fetch_ip_info(ipaddr):
