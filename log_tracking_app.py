@@ -97,7 +97,7 @@ class UFW_BLOCK(BaseRecord):
         self.ipaddr = self.data["SRC"]
 
 
-def main(logrecord: dict):
+def main(logrecord: dict, prev_data=None):
     raw_record = RECORD_NT(**logrecord)
     obj = globals()[raw_record.type].from_record(raw_record)
     with open("_MSIO/EXEC_IN.json") as f:
