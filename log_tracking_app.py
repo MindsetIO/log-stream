@@ -1,18 +1,21 @@
 #!/usr/bin/env python3
 
 from collections import namedtuple
-from datetime import datetime, timezone as tz
+from datetime import datetime as dt
 import json
 
+import numpy as np
 import requests
+from scipy import stats as scipy_stats
 
 
 RECORD_NT = namedtuple("record", "type content timestamp")
-logdate = lambda m, d, dt: datetime.strptime(f"{m} {d} {dt}", "%b %d %X")
+logdate = lambda m, d, ts: dt.strptime(f"{m} {d} {ts}", "%b %d %X")
 
 
 class BaseRecord:
     _FIELDS = [
+        "type",
         "content",
         "timestamp",
         "logdate",
@@ -24,6 +27,7 @@ class BaseRecord:
     ]
 
     def __init__(self, record):
+        self.type = self.__class__.__name__
         self.data = None
         self.logdate = None
         self.ipaddr = None
@@ -38,14 +42,12 @@ class BaseRecord:
         obj = cls(record)
         if hasattr(obj, "parse"):
             obj.parse()
-        obj.ipinfo = obj.fetch_ip_info(obj.ipaddr)
+        # obj.ipinfo = obj.fetch_ip_info(obj.ipaddr)
         return obj
 
     @staticmethod
     def _fromiso(timestamp):
-        return datetime.fromisoformat(
-            timestamp[:-1]
-        )  # .replace(tzinfo=tz.utc)
+        return dt.fromisoformat(timestamp[:-1])
 
     @staticmethod
     def fetch_ip_info(ipaddr):
@@ -67,8 +69,7 @@ class BaseRecord:
         }
 
     def as_dict(self):
-        dct = {k: getattr(self, k) for k in self._FIELDS if hasattr(self, k)}
-        return {"type": self.__class__.__name__, **dct}
+        return {k: getattr(self, k) for k in self._FIELDS if hasattr(self, k)}
 
 
 class SSH_INVALID(BaseRecord):
@@ -99,12 +100,22 @@ class UFW_BLOCK(BaseRecord):
         self.ipaddr = self.data["SRC"]
 
 
-def main(logrecord: dict, prev_data=None):
+def make_stats(data, trailing_hrs: int = 1):
+    tss = np.array(data["timestamp"]).astype(np.datetime64)
+    idxs = tss > np.datetime64(dt.utcnow()) - np.timedelta64(trailing_hrs, "h")
+    rate_per_minute = None
+    if len(dts := np.diff(tss[idxs]) / np.timedelta64(1, "m")) > 1:
+        rate_per_minute = 1 / scipy_stats.expon.fit(dts)[1]
+    return {"rate_per_minute": rate_per_minute}
+
+
+def main(logrecord: dict, prev_data=None, trailing_hours: int = 1):
     raw_record = RECORD_NT(**logrecord)
     obj = globals()[raw_record.type].from_record(raw_record)
-    with open("_MSIO/EXEC_IN.json") as f:
-        print(f.read())
-    return obj.as_dict()
+    for k in prev_data or {}:
+        prev_data[k].append(getattr(obj, k))
+    stats = make_stats(data=prev_data, trailing_hrs=trailing_hours)
+    return {**obj.as_dict(), "stats": stats}
 
 
 if __name__ == "__main__":  # Local testing
@@ -113,10 +124,10 @@ if __name__ == "__main__":  # Local testing
         with open("samples.jsonl") as f:
             for line in f.readlines():
                 if line := line.strip():
-                    yield RECORD_NT(**json.loads(line))
+                    yield json.loads(line)
 
+    prev_data = {"ipinfo": [], "timestamp": [], "type": []}
     for en, rec in enumerate(stream_data()):
-        parsed_rec = globals()[rec.type].from_record(rec)
-        print(parsed_rec.as_dict())
-        if en == 3:
+        entry = main(rec, prev_data, 1000)
+        if en == 300:
             break
