@@ -115,7 +115,9 @@ def main(logrecord: dict, prev_data=None, trailing_hours: int = 1):
     for k in prev_data or {}:
         prev_data[k].append(getattr(obj, k))
     stats = make_stats(data=prev_data, trailing_hrs=trailing_hours)
-    return {**obj.as_dict(), "stats": stats}
+    rv = {**obj.as_dict(), "stats": stats}
+    print(rv)
+    return rv
 
 
 if __name__ == "__main__":  # Local testing
