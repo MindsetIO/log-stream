@@ -113,7 +113,8 @@ def main(logrecord: dict, prev_data=None, trailing_hours: int = 1):
     raw_record = RECORD_NT(**logrecord)
     obj = globals()[raw_record.type].from_record(raw_record)
     for k in prev_data or {}:
-        prev_data[k].append(getattr(obj, k))
+        if hasattr(obj, k):
+            prev_data[k].append(getattr(obj, k))
     stats = make_stats(data=prev_data, trailing_hrs=trailing_hours)
     rv = {**obj.as_dict(), "stats": stats}
     print(rv)
