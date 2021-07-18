@@ -106,7 +106,7 @@ def make_stats(data, trailing_hrs: int = 1):
     rate_per_minute = None
     if len(dts := np.diff(tss[idxs]) / np.timedelta64(1, "m")) > 1:
         rate_per_minute = 1 / scipy_stats.expon.fit(dts)[1]
-    return {"rate_per_minute": rate_per_minute}
+    return {"rate_per_minute": rate_per_minute, "count": np.sum(idxs)}
 
 
 def main(logrecord: dict, prev_data=None, trailing_hours: int = 1):
