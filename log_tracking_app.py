@@ -126,7 +126,9 @@ def main(logrecord: dict, prev_data=None, trailing_hrs: int = 1):
         if hasattr(obj, k):
             prev_data[k].append(getattr(obj, k))
     stats = make_stats(data=prev_data, trailing_hrs=trailing_hrs)
-    return {**obj.as_dict(), "stats": stats}
+    with open("page.html") as f:
+        html = f.read()
+    return {**obj.as_dict(), "stats": stats, "html": html}
 
 
 if __name__ == "__main__":  # Local testing
