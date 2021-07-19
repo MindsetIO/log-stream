@@ -8,7 +8,7 @@
     "regex": "Invalid user|Connection closed by authenticating user"
   },
   "UFW_BLOCK": {
-    "logfile": "/var/log/syslog",
+    "logfile": "/var/log/ufw.log",
     "regex": "UFW BLOCK"
   }
 }
