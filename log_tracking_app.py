@@ -29,7 +29,7 @@ class BaseRecord:
         obj = cls(record)
         if hasattr(obj, "parse"):
             obj.parse()
-        # obj.ipinfo = obj.fetch_ip_info(obj.ipaddr)
+        obj.ipinfo = obj.fetch_ip_info(obj.ipaddr)
         return obj
 
     @staticmethod
