@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from collections import namedtuple
+from collections import defaultdict, namedtuple
 from datetime import datetime as dt
 import json
 
@@ -112,6 +112,7 @@ def make_stats(data, trailing_hrs: int = 1):
 def main(logrecord: dict, prev_data=None, trailing_hours: int = 1):
     raw_record = RECORD_NT(**logrecord)
     obj = globals()[raw_record.type].from_record(raw_record)
+    prev_data = prev_data or defaultdict(list)
     for k in prev_data or {}:
         if hasattr(obj, k):
             prev_data[k].append(getattr(obj, k))
