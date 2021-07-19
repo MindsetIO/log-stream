@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Log Tracker</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.1/css/bulma.min.css">
-    <link rel="stylesheet" href="https://cdn.materialdesignicons.com/5.8.55/css/materialdesignicons.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@mdi/font@5.9.55/css/materialdesignicons.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/dayjs/1.10.4/dayjs.min.js" integrity="sha512-0fcCRl828lBlrSCa8QJY51mtNqTcHxabaXVLPgw/jPA5Nutujh6CbTdDgRzl9aSPYW/uuE7c4SffFUQFBAy6lg==" crossorigin="anonymous"></script>
     <style type="text/css">
         html {
@@ -94,14 +94,14 @@
 {#<script type="application/ld+json" id="worldMarkers">{{ world | safe }}</script>#}
 
 <script>
-    const table = document.getElementById("tbody");
+    /*const table = document.getElementById("tbody");
     const data = JSON.parse(document.getElementById("datablock").innerHTML);
     const tablelen = JSON.parse(document.getElementById("tablelen").innerHTML);
     const msioUsername = JSON.parse(document.getElementById("msioUsername").innerHTML);
     const appIdn = JSON.parse(document.getElementById("appIdn").innerHTML);
     const world = JSON.parse(document.getElementById("worldMarkers").innerHTML);
     const worldMap = document.getElementById('worldMap');
-    const statsBody = document.getElementById('statsBody');
+    const statsBody = document.getElementById('statsBody');*/
     const svgns = "http://www.w3.org/2000/svg";
     const cont_color = {
         'Ocean': "#000",
@@ -180,20 +180,25 @@
 
 
     // World map markers
-    world.continent.forEach((cont, idx) => {
+    /*world.continent.forEach((cont, idx) => {
         const lat = world.lat[idx];
         const lon = world.lon[idx];
         if (cont !== 'Ocean') addCircle(lat, lon, 0.5, cont_color[cont], 0.1);
-    });
+    });*/
 
-    (data || []).forEach(rec => {
+    /*(data || []).forEach(rec => {
         if (rec != null) addRecord(rec);
     });
 
     makeStats(JSON.parse(document.getElementById("stats").innerHTML));
 
+     */
+
     // websockets handler
     try {
+        const msioUsername = "msio-team";
+        const appIdn = "logger2";
+
         const conn_url = `wss://ws.mindset.io/${msioUsername}/${appIdn}`
         let wsock = new WebSocket(conn_url);
         wsock.onopen = function (e) {
@@ -203,8 +208,9 @@
 
         wsock.onmessage = function (event) {
             let msg = JSON.parse(event.data);
-            addRecord(msg.payload.record);
-            makeStats(msg.payload.stats);
+            console.log(msg);
+            // addRecord(msg.payload.record);
+            // makeStats(msg.payload.stats);
         };
 
         wsock.onclose = function (event) {
