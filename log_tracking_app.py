@@ -105,7 +105,7 @@ def make_stats(data, trailing_hrs: int = 1):
     idxs = tss > np.datetime64(dt.utcnow()) - np.timedelta64(trailing_hrs, "h")
     rate_per_minute = None
     if len(dts := np.diff(tss[idxs]) / np.timedelta64(1, "m")) > 1:
-        rate_per_minute = 1 / scipy_stats.expon.fit(dts)[1]
+        rate_per_minute = np.around(1 / scipy_stats.expon.fit(dts)[1], 2)
     return {"rate_per_minute": rate_per_minute, "count": int(np.sum(idxs))}
 
 
