@@ -112,7 +112,7 @@ def make_stats(data, trailing_hrs: int = 1):
 
     event_types = np.array(data["type"])
     tss = np.array(data["timestamp"]).astype(np.datetime64)
-    stats = {"__ALL__": calc_rate(tss)}
+    stats = {"__ALL__": calc_rate(tss), "trailing_hrs": trailing_hrs}
     for etype in np.unique(event_types):
         stats[etype] = calc_rate(tss[event_types == etype])
     return stats

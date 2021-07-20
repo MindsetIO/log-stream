@@ -36,6 +36,25 @@
             position: relative;
         }
 
+        .pulse {
+            position: absolute;
+            -webkit-animation: pulse 0.33s ease-in;
+            -moz-animation: pulse 0.33s ease-in;
+            animation: pulse 0.33s ease-in;
+            -webkit-animation-iteration-count: 3;
+            -moz-animation-iteration-count: 3;
+            animation-iteration-count: 3;
+        }
+
+        @keyframes pulse {
+            from {
+                stroke-width: 1;
+            }
+            to {
+                stroke-width: 3;
+            }
+        }
+
     </style>
 </head>
 <body>
@@ -55,7 +74,14 @@
                                     {% endfor %}
                                 </tr>
                                 {{ '</' ~ w ~ '>' }}
+
+
+
                             {% endfor %}
+
+
+
+
                             <tbody id="tbody" class="is-size-7"></tbody>
                         </table>
                     </div>
@@ -72,12 +98,28 @@
                         <table class="table count is-family-monospace has-text-centered is-narrow is-fullwidth is-hoverable" id="table">
                             <thead>
                             <tr>
-                                {% for hdr in ["type", "count", "rate [per min]"] %}
-                                    <th>{{ hdr }}</th>
-                                {% endfor %}
+                                <th>event type</th>
+                                <th>count</th>
+                                <th>rate [1/min]</th>
                             </tr>
                             </thead>
-                            <tbody id="statsBody" class="is-size-6"></tbody>
+                            <tbody id="statsBody" class="is-size-6">
+                            <tr>
+                                <th id="UFW_BLOCK:type">UFW Block</th>
+                                <td id="UFW_BLOCK:count">?</td>
+                                <td id="UFW_BLOCK:rate">?</td>
+                            </tr>
+                            <tr>
+                                <th id="SSH_INVALID:type">Invalid SSH</th>
+                                <td id="SSH_INVALID:count">?</td>
+                                <td id="SSH_INVALID:rate">?</td>
+                            </tr>
+                            <tr>
+                                <th id="__ALL__:type">Total</th>
+                                <td id="__ALL__:count">?</td>
+                                <td id="__ALL__:rate">?</td>
+                            </tr>
+                            </tbody>
                         </table>
                     </div>
                 </div>
@@ -85,12 +127,6 @@
         </div>
     </section>
 </div>
-
-{#<script type="application/ld+json" id="msioUsername">{{ username | tojson | safe }}</script>#}
-{#<script type="application/ld+json" id="appIdn">{{ app_idn | tojson | safe }}</script>#}
-{#<script type="application/ld+json" id="datablock">{{ data | tojson |safe }}</script>#}
-{#<script type="application/ld+json" id="stats">{{ stats|tojson|safe }}</script>#}
-{#<script type="application/ld+json" id="tablelen">{{ tablelen }}</script>#}
 
 <script type="application/ld+json" id="worldMarkers">{
     "lat": [
@@ -7661,7 +7697,7 @@
         }
     }
 
-    function addCircle(lat, lon, radius, color, opacity) {
+    function addCircle_(lat, lon, radius, color, opacity) {
         const circ = document.createElementNS(svgns, 'circle');
         const y = 55 - (lat + 90) / 180 * 53;
         const x = (lon + 180) / 360 * 100;
@@ -7670,12 +7706,42 @@
         circ.setAttributeNS(null, 'r', radius ? radius : '0.7');
         circ.setAttributeNS(null, 'fill', color ? color : recColor);
         circ.setAttributeNS(null, 'fill-opacity', `${opacity ? opacity : recOpacity}`);
+        circ.classList.add("pulse");
+        worldMap.appendChild(circ);
+    }
+
+
+    function addCircle(lat, lon, radius, color, opacity, _class) {
+        const circ = document.createElementNS(svgns, 'line');
+        const y = 55 - (lat + 90) / 180 * 53;
+        const x = (lon + 180) / 360 * 100;
+        circ.setAttributeNS(null, 'x1', `${x}`);
+        circ.setAttributeNS(null, 'y1', `${y}`);
+        circ.setAttributeNS(null, 'x2', `${x}`);
+        circ.setAttributeNS(null, 'y2', `${y}`);
+        circ.setAttributeNS(null, 'stroke', color ? color : recColor);
+        circ.setAttributeNS(null, 'stroke-width', "1");
+        circ.setAttributeNS(null, 'stroke-linecap', "round");
+        circ.setAttributeNS(null, 'opacity', opacity);
+
+        //circ.setAttributeNS(null, 'r', radius ? radius : '0.7');
+        //circ.setAttributeNS(null, 'fill', color ? color : recColor);
+        //circ.setAttributeNS(null, 'fill-opacity', `${opacity ? opacity : recOpacity}`);
+        if (_class) circ.classList.add(_class);
         worldMap.appendChild(circ);
     }
 
     function addRecord(record) {
         addRow(record);
         addCircle(record.geoip.coords.lat, record.geoip.coords.lon, null, typeMap[record.type].color);
+    }
+
+    function populateStats(stats) {
+        console.log(stats);
+        Object.entries(stats).forEach(function ([key, value]) {
+            document.getElementById(`${key}:count`).innerHTML = value['count'];
+            document.getElementById(`${key}:rate`).innerHTML = value['rate_per_minute'];
+        });
     }
 
     function makeStats(stats) {
@@ -7713,7 +7779,6 @@
     try {
         const msioUsername = "msio-team";
         const appIdn = "logger2";
-
         const conn_url = `wss://ws.mindset.io/${msioUsername}/${appIdn}`
         let wsock = new WebSocket(conn_url);
         wsock.onopen = function (e) {
@@ -7722,8 +7787,11 @@
         };
 
         wsock.onmessage = function (event) {
-            let msg = JSON.parse(event.data);
-            console.log(msg);
+            let payload = JSON.parse(event.data).payload;
+            if (payload === undefined) return;
+            //console.log(payload);
+            addCircle(payload.ipinfo.lat, payload.ipinfo.lon, null, typeMap[payload.type].color, 0.7, 'pulse');
+            populateStats(payload.stats);
             // addRecord(msg.payload.record);
             // makeStats(msg.payload.stats);
         };
