@@ -42,6 +42,7 @@ class BaseRecord:
             return
         resp = requests.get(f"https://ipinfo.io/{ipaddr}")
         if resp.status_code != 200:
+            print(resp.json())
             return
         data = resp.json()
         coords = [float(c) for c in data["loc"].split(",")]

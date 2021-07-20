@@ -13,6 +13,10 @@
             overflow: auto;
         }
 
+        .mdi {
+            margin-right: 0.5rem;
+        }
+
         .table {
             counter-reset: row-num -2;
         }
@@ -63,39 +67,10 @@
         <div class="tile is-ancestor">
             <div class="tile is-6 is-parent">
                 <div class="tile is-child box">
-                    <p class="title"><i class="mdi mdi-flash-outline has-text-primary"></i>live events</p>
+                    <p class="title"><i class="mdi mdi-table has-text-primary"></i>stats <small class="is-size-6">[trailing <span id="trailingHours">?</span> hours] </small></p>
                     <div class="table-container">
-                        <table class="table is-family-monospace has-text-centered is-narrow is-fullwidth is-hoverable" id="table">
-                            {% for w in ['thead', 'tfoot'] %}
-                                {{ '<' ~ w ~ '>' }}
-                                <tr>
-                                    {% for hdr in ["#", "type", "time", "host", "src IP", "geo"] %}
-                                        <th>{{ hdr }}</th>
-                                    {% endfor %}
-                                </tr>
-                                {{ '</' ~ w ~ '>' }}
+                        <table class="table is-family-monospace has-text-centered is-narrow is-fullwidth is-hoverable" id="statsTable">
 
-
-
-                            {% endfor %}
-
-
-
-
-                            <tbody id="tbody" class="is-size-7"></tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-            <div class="tile is-6 is-vertical is-parent">
-                <div class="tile is-child box">
-                    <p class="title"><i class="mdi mdi-map-marker has-text-primary"></i>event map</p>
-                    <svg id="worldMap" xmlns="http://www.w3.org/2000/svg" version="1.1" x="0" y="0" viewBox="0 0 100 50" preserveAspectRatio="xMinYMin"></svg>
-                </div>
-                <div class="tile is-child box">
-                    <p class="title"><i class="mdi mdi-table has-text-primary"></i> stats</p>
-                    <div class="table-container">
-                        <table class="table count is-family-monospace has-text-centered is-narrow is-fullwidth is-hoverable" id="table">
                             <thead>
                             <tr>
                                 <th>event type</th>
@@ -121,6 +96,19 @@
                             </tr>
                             </tbody>
                         </table>
+
+                    </div>
+                </div>
+            </div>
+            <div class="tile is-6 is-vertical is-parent">
+                <div class="tile is-child box">
+                    <p class="title"><i class="mdi mdi-map-marker has-text-primary"></i>event map</p>
+                    <svg id="worldMap" xmlns="http://www.w3.org/2000/svg" version="1.1" x="0" y="0" viewBox="0 0 100 50" preserveAspectRatio="xMinYMin"></svg>
+                </div>
+                <div class="tile is-child box">
+                    <p class="title"><i class="mdi mdi-table has-text-primary"></i>latest event</p>
+                    <div class="table-container">
+                        <p id="ipinfo:Country">IP Info: <span id="ipinfo:flag">?</span> <span id="ipinfo:country">?</span></p>
                     </div>
                 </div>
             </div>
@@ -7643,6 +7631,8 @@
 <script>
     const world = JSON.parse(document.getElementById("worldMarkers").innerHTML);
     const worldMap = document.getElementById('worldMap');
+    const trailingHours = document.getElementById("trailingHours");
+    const regionNames = new Intl.DisplayNames(['en'], {type: 'region'});
 
 
     /*const table = document.getElementById("tbody");
@@ -7697,19 +7687,6 @@
         }
     }
 
-    function addCircle_(lat, lon, radius, color, opacity) {
-        const circ = document.createElementNS(svgns, 'circle');
-        const y = 55 - (lat + 90) / 180 * 53;
-        const x = (lon + 180) / 360 * 100;
-        circ.setAttributeNS(null, 'cx', `${x}`);
-        circ.setAttributeNS(null, 'cy', `${y}`);
-        circ.setAttributeNS(null, 'r', radius ? radius : '0.7');
-        circ.setAttributeNS(null, 'fill', color ? color : recColor);
-        circ.setAttributeNS(null, 'fill-opacity', `${opacity ? opacity : recOpacity}`);
-        circ.classList.add("pulse");
-        worldMap.appendChild(circ);
-    }
-
 
     function addCircle(lat, lon, radius, color, opacity, _class) {
         const circ = document.createElementNS(svgns, 'line');
@@ -7723,40 +7700,29 @@
         circ.setAttributeNS(null, 'stroke-width', "1");
         circ.setAttributeNS(null, 'stroke-linecap', "round");
         circ.setAttributeNS(null, 'opacity', opacity);
-
-        //circ.setAttributeNS(null, 'r', radius ? radius : '0.7');
-        //circ.setAttributeNS(null, 'fill', color ? color : recColor);
-        //circ.setAttributeNS(null, 'fill-opacity', `${opacity ? opacity : recOpacity}`);
         if (_class) circ.classList.add(_class);
         worldMap.appendChild(circ);
     }
 
-    function addRecord(record) {
-        addRow(record);
-        addCircle(record.geoip.coords.lat, record.geoip.coords.lon, null, typeMap[record.type].color);
-    }
 
     function populateStats(stats) {
-        console.log(stats);
+        trailingHours.innerHTML = stats.trailing_hrs;
         Object.entries(stats).forEach(function ([key, value]) {
-            document.getElementById(`${key}:count`).innerHTML = value['count'];
-            document.getElementById(`${key}:rate`).innerHTML = value['rate_per_minute'];
+            try {
+                document.getElementById(`${key}:count`).innerHTML = value['count'];
+                document.getElementById(`${key}:rate`).innerHTML = value['rate_per_minute'];
+            } catch {
+            }
         });
     }
 
-    function makeStats(stats) {
-        statsBody.innerHTML = "";
-        Object.entries(stats).forEach(([k, v]) => {
-            const row = statsBody.insertRow(0);
-            const cell0 = row.insertCell(0);
-            const cell1 = row.insertCell(1);
-            const cell2 = row.insertCell(2);
-            let icon = typeMap[k];
+    function getFlagEmoji(countryCode) {
+        return countryCode.toUpperCase().replace(/./g, char => String.fromCodePoint(127397 + char.charCodeAt()));
+    }
 
-            cell0.innerHTML = `<i class="mdi mdi-${icon.icon}" style="color:${icon.color}"></i> <strong>${k}</strong>`;
-            cell1.innerHTML = v.count;
-            cell2.innerHTML = v.rate_min ? v.rate_min.toFixed(2) : "N/A";
-        })
+    function populateEvent(payload) {
+        document.getElementById("ipinfo:flag").innerHTML = getFlagEmoji(payload.ipinfo.country);
+        document.getElementById("ipinfo:country").innerHTML = regionNames.of(payload.ipinfo.country);
     }
 
 
@@ -7767,13 +7733,6 @@
         if (cont !== 'Ocean') addCircle(lat, lon, 0.5, cont_color[cont], 0.1);
     });
 
-    /*(data || []).forEach(rec => {
-        if (rec != null) addRecord(rec);
-    });
-
-    makeStats(JSON.parse(document.getElementById("stats").innerHTML));
-
-     */
 
     // websockets handler
     try {
@@ -7789,9 +7748,10 @@
         wsock.onmessage = function (event) {
             let payload = JSON.parse(event.data).payload;
             if (payload === undefined) return;
-            //console.log(payload);
+            console.log(payload);
             addCircle(payload.ipinfo.lat, payload.ipinfo.lon, null, typeMap[payload.type].color, 0.7, 'pulse');
             populateStats(payload.stats);
+            populateEvent(payload);
             // addRecord(msg.payload.record);
             // makeStats(msg.payload.stats);
         };

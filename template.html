@@ -163,7 +163,7 @@
         addCircle(record.geoip.coords.lat, record.geoip.coords.lon, null, typeMap[record.type].color);
     }
 
-    function makeStats(stats) {
+    function makeStats_(stats) {
         statsBody.innerHTML = "";
         Object.entries(stats).forEach(([k, v]) => {
             const row = statsBody.insertRow(0);
@@ -190,7 +190,7 @@
         if (rec != null) addRecord(rec);
     });
 
-    makeStats(JSON.parse(document.getElementById("stats").innerHTML));
+    // makeStats(JSON.parse(document.getElementById("stats").innerHTML));
 
     // websockets handler
     try {
