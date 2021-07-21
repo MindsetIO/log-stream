@@ -129,7 +129,9 @@ def main(logrecord: dict, prev_data=None, trailing_hrs: int = 1):
         zip_filter = filter(lambda z: (z[0] == obj.ipaddr and z[1]), zipit)
         obj.ipinfo = next(zip_filter)[1]
         logger.info(f"prefetched {obj.ipaddr}")
+        print(f"prefetched {obj.ipaddr}")
     except StopIteration:
+        print(f"fetching {obj.ipaddr}")
         obj.ipinfo = obj.fetch_ip_info(obj.ipaddr)
 
     for k in prev_data or {}:
