@@ -29,7 +29,6 @@ class BaseRecord:
         obj = cls(record)
         if hasattr(obj, "parse"):
             obj.parse()
-        obj.ipinfo = obj.fetch_ip_info(obj.ipaddr)
         return obj
 
     @staticmethod
@@ -119,10 +118,15 @@ def make_stats(data, trailing_hrs: int = 1):
 
 
 def main(logrecord: dict, prev_data=None, trailing_hrs: int = 1):
-    print(prev_data.keys())
+
     raw_record = RECORD_NT(**logrecord)
     obj = globals()[raw_record.type].from_record(raw_record)
     prev_data = prev_data or defaultdict(list)
+    prev_ipinfo = prev_data.get("ipinfo", [])
+    for ipinfo in prev_ipinfo:
+        print(ipinfo)
+    obj.ipinfo = obj.fetch_ip_info(obj.ipaddr)
+
     for k in prev_data or {}:
         if hasattr(obj, k):
             prev_data[k].append(getattr(obj, k))
