@@ -7689,19 +7689,19 @@
 
 
     function addCircle(lat, lon, radius, color, opacity, _class) {
-        const circ = document.createElementNS(svgns, 'line');
+        const line = document.createElementNS(svgns, 'line');
         const y = 55 - (lat + 90) / 180 * 53;
         const x = (lon + 180) / 360 * 100;
-        circ.setAttributeNS(null, 'x1', `${x}`);
-        circ.setAttributeNS(null, 'y1', `${y}`);
-        circ.setAttributeNS(null, 'x2', `${x}`);
-        circ.setAttributeNS(null, 'y2', `${y}`);
-        circ.setAttributeNS(null, 'stroke', color ? color : recColor);
-        circ.setAttributeNS(null, 'stroke-width', "1");
-        circ.setAttributeNS(null, 'stroke-linecap', "round");
-        circ.setAttributeNS(null, 'opacity', opacity);
-        if (_class) circ.classList.add(_class);
-        worldMap.appendChild(circ);
+        line.setAttributeNS(null, 'x1', `${x}`);
+        line.setAttributeNS(null, 'y1', `${y}`);
+        line.setAttributeNS(null, 'x2', `${x}`);
+        line.setAttributeNS(null, 'y2', `${y}`);
+        line.setAttributeNS(null, 'stroke', color ? color : recColor);
+        line.setAttributeNS(null, 'stroke-width', "1");
+        line.setAttributeNS(null, 'stroke-linecap', "round");
+        line.setAttributeNS(null, 'opacity', opacity);
+        if (_class) line.classList.add(_class);
+        worldMap.appendChild(line);
     }
 
 
@@ -7721,6 +7721,7 @@
     }
 
     function populateEvent(payload) {
+        console.log(payload);
         if (payload.ipinfo) {
             document.getElementById("ipinfo:flag").innerHTML = getFlagEmoji(payload.ipinfo.country);
             document.getElementById("ipinfo:country").innerHTML = regionNames.of(payload.ipinfo.country);
