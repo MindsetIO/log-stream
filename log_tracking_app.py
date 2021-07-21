@@ -122,6 +122,9 @@ def main(logrecord: dict, prev_data=None, trailing_hrs: int = 1):
     obj = globals()[raw_record.type].from_record(raw_record)
     prev_data = prev_data or defaultdict(list)
     print(prev_data.get("ipaddr", []))
+    print(prev_data.get("ipinfo", []))
+    for k, v in prev_data.items():
+        print(f"{k=}: {len(v)=}")
     print(f"{obj.ipaddr}")
     try:
         ipaddr_idx = prev_data.get("ipaddr", []).index(obj.ipaddr)
