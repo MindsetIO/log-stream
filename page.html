@@ -7753,11 +7753,9 @@
         wsock.onmessage = function (event) {
             let payload = JSON.parse(event.data).payload;
             if (payload === undefined) return;
-            console.log(payload);
             const ipinfo = payload.ipinfo;
             if (ipinfo) {
-                addCircle(payload.ipinfo, payload.ipinfo.lon, null, typeMap[payload.type].color, 0.7, 'pulse');
-
+                addCircle(payload.ipinfo.lat, payload.ipinfo.lon, null, typeMap[payload.type].color, 0.7, 'pulse');
             } else {
                 addCircle(0, 0, null, typeMap[payload.type].color, 0.7, 'pulse');
             }
