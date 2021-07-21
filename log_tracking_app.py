@@ -3,6 +3,7 @@
 from collections import defaultdict, namedtuple
 from datetime import datetime as dt
 import json
+import logging
 
 import numpy as np
 import requests
@@ -120,23 +121,19 @@ def make_stats(data, trailing_hrs: int = 1):
 def main(logrecord: dict, prev_data=None, trailing_hrs: int = 1):
     raw_record = RECORD_NT(**logrecord)
     obj = globals()[raw_record.type].from_record(raw_record)
-    prev_data = prev_data or defaultdict(list)
+    data = prev_data or defaultdict(list)
     try:
-        print(
-            list(zip(prev_data.get("ipaddr", []), prev_data.get("ipinfo", [])))
-        )
-        zipit = zip(prev_data.get("ipaddr", []), prev_data.get("ipinfo", []))
-
+        zipit = zip(data.get("ipaddr", []), data.get("ipinfo", []))
         zip_filter = filter(lambda z: (z[0] == obj.ipaddr and z[1]), zipit)
         obj.ipinfo = next(zip_filter)[1]
-        print("prefetched {obj.ipaddr}")
+        logging.info(f"prefetched {obj.ipaddr}")
     except StopIteration:
         obj.ipinfo = obj.fetch_ip_info(obj.ipaddr)
 
     for k in prev_data or {}:
         if hasattr(obj, k):
-            prev_data[k].append(getattr(obj, k))
-    stats = make_stats(data=prev_data, trailing_hrs=trailing_hrs)
+            data[k].append(getattr(obj, k))
+    stats = make_stats(data=data, trailing_hrs=trailing_hrs)
     with open("page.html") as f:
         html = f.read()
     return {**obj.as_dict(), "stats": stats, "html": html}
