@@ -121,6 +121,8 @@ def main(logrecord: dict, prev_data=None, trailing_hrs: int = 1):
     raw_record = RECORD_NT(**logrecord)
     obj = globals()[raw_record.type].from_record(raw_record)
     prev_data = prev_data or defaultdict(list)
+    print(prev_data.get("ipaddr", []))
+    print(f"{obj.ipaddr}")
     try:
         ipaddr_idx = prev_data.get("ipaddr", []).index(obj.ipaddr)
         obj.ipinfo = prev_data["ipinfo"][ipaddr_idx]
