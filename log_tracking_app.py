@@ -119,7 +119,7 @@ def make_stats(data, trailing_hrs: int = 1):
 
 
 def main(logrecord: dict, prev_data=None, trailing_hrs: int = 1):
-    print(prev_data)
+    print(prev_data["ip_info"])
     raw_record = RECORD_NT(**logrecord)
     obj = globals()[raw_record.type].from_record(raw_record)
     prev_data = prev_data or defaultdict(list)
