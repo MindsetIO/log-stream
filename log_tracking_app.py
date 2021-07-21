@@ -121,16 +121,11 @@ def main(logrecord: dict, prev_data=None, trailing_hrs: int = 1):
     raw_record = RECORD_NT(**logrecord)
     obj = globals()[raw_record.type].from_record(raw_record)
     prev_data = prev_data or defaultdict(list)
-
     try:
         zipit = zip(prev_data.get("ipaddr", []), prev_data.get("ipinfo", []))
         zip_filter = filter(lambda z: (z[0] == obj.ipaddr and z[1]), zipit)
         obj.ipinfo = next(zip_filter)
-
-        # ipaddr_idx = prev_data.get("ipaddr", []).index(obj.ipaddr)
-        # obj.ipinfo = prev_data["ipinfo"][ipaddr_idx]
-
-    except ValueError:
+    except StopIteration:
         obj.ipinfo = obj.fetch_ip_info(obj.ipaddr)
 
     for k in prev_data or {}:
