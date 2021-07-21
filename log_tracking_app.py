@@ -124,6 +124,7 @@ def main(logrecord: dict, prev_data=None, trailing_hrs: int = 1):
     try:
         ipaddr_idx = prev_data.get("ipaddr", []).index(obj.ipaddr)
         obj.ipinfo = prev_data["ipinfo"][ipaddr_idx]
+        print(f"{obj.ipaddr} prefetched")
     except ValueError:
         obj.ipinfo = obj.fetch_ip_info(obj.ipaddr)
 
