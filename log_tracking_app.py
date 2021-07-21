@@ -128,7 +128,7 @@ def main(logrecord: dict, prev_data=None, trailing_hrs: int = 1):
         zipit = zip(data.get("ipaddr", []), data.get("ipinfo", []))
         zip_filter = filter(lambda z: (z[0] == obj.ipaddr and z[1]), zipit)
         obj.ipinfo = next(zip_filter)[1]
-        logger.info(f"prefetched {obj.ipaddr}")
+        logger.error(f"prefetched {obj.ipaddr}")
         print(f"prefetched {obj.ipaddr}")
     except StopIteration:
         print(f"fetching {obj.ipaddr}")
