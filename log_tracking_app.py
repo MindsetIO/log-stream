@@ -118,13 +118,11 @@ def make_stats(data, trailing_hrs: int = 1):
 
 
 def main(logrecord: dict, prev_data=None, trailing_hrs: int = 1):
-
     raw_record = RECORD_NT(**logrecord)
     obj = globals()[raw_record.type].from_record(raw_record)
     prev_data = prev_data or defaultdict(list)
-    prev_ipinfo = prev_data.get("ipinfo", [])
-    for ipinfo in prev_ipinfo:
-        print(ipinfo)
+    ipaddr_idx = prev_data.get("ipaddr", []).index(obj.ipaddr)
+    print(ipaddr_idx)
     obj.ipinfo = obj.fetch_ip_info(obj.ipaddr)
 
     for k in prev_data or {}:
