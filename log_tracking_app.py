@@ -14,6 +14,8 @@ RECORD_NT = namedtuple("record", "type content timestamp")
 logdate = (
     lambda m, d, tm: f"{dt.strptime(f'{m} {d} {tm}', '%b %d %X'):%b-%d %H:%M:%S}"
 )
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 
 
 class BaseRecord:
@@ -126,7 +128,7 @@ def main(logrecord: dict, prev_data=None, trailing_hrs: int = 1):
         zipit = zip(data.get("ipaddr", []), data.get("ipinfo", []))
         zip_filter = filter(lambda z: (z[0] == obj.ipaddr and z[1]), zipit)
         obj.ipinfo = next(zip_filter)[1]
-        logging.info(f"prefetched {obj.ipaddr}")
+        logger.info(f"prefetched {obj.ipaddr}")
     except StopIteration:
         obj.ipinfo = obj.fetch_ip_info(obj.ipaddr)
 
