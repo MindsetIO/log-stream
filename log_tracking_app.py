@@ -29,7 +29,7 @@ class BaseRecord:
         obj = cls(record)
         if hasattr(obj, "parse"):
             obj.parse()
-        # obj.ipinfo = obj.fetch_ip_info(obj.ipaddr)
+        obj.ipinfo = obj.fetch_ip_info(obj.ipaddr)
         return obj
 
     @staticmethod
@@ -42,7 +42,6 @@ class BaseRecord:
             return
         resp = requests.get(f"https://ipinfo.io/{ipaddr}")
         if resp.status_code != 200:
-            print(resp.json())
             return
         data = resp.json()
         coords = [float(c) for c in data["loc"].split(",")]

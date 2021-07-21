@@ -7721,8 +7721,13 @@
     }
 
     function populateEvent(payload) {
-        document.getElementById("ipinfo:flag").innerHTML = getFlagEmoji(payload.ipinfo.country);
-        document.getElementById("ipinfo:country").innerHTML = regionNames.of(payload.ipinfo.country);
+        if (payload.ipinfo) {
+            document.getElementById("ipinfo:flag").innerHTML = getFlagEmoji(payload.ipinfo.country);
+            document.getElementById("ipinfo:country").innerHTML = regionNames.of(payload.ipinfo.country);
+        } else {
+            document.getElementById("ipinfo:flag").innerHTML = "🏝";
+            document.getElementById("ipinfo:country").innerHTML = "NULL Island";
+        }
     }
 
 
@@ -7749,7 +7754,13 @@
             let payload = JSON.parse(event.data).payload;
             if (payload === undefined) return;
             console.log(payload);
-            addCircle(payload.ipinfo.lat, payload.ipinfo.lon, null, typeMap[payload.type].color, 0.7, 'pulse');
+            const ipinfo = payload.ipinfo;
+            if (ipinfo) {
+                addCircle(payload.ipinfo, payload.ipinfo.lon, null, typeMap[payload.type].color, 0.7, 'pulse');
+
+            } else {
+                addCircle(0, 0, null, typeMap[payload.type].color, 0.7, 'pulse');
+            }
             populateStats(payload.stats);
             populateEvent(payload);
             // addRecord(msg.payload.record);
