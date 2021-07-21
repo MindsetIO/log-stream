@@ -122,7 +122,11 @@ def main(logrecord: dict, prev_data=None, trailing_hrs: int = 1):
     obj = globals()[raw_record.type].from_record(raw_record)
     prev_data = prev_data or defaultdict(list)
     try:
+        print(
+            list(zip(prev_data.get("ipaddr", []), prev_data.get("ipinfo", [])))
+        )
         zipit = zip(prev_data.get("ipaddr", []), prev_data.get("ipinfo", []))
+
         zip_filter = filter(lambda z: (z[0] == obj.ipaddr and z[1]), zipit)
         obj.ipinfo = next(zip_filter)[1]
         print("prefetched {obj.ipaddr}")
