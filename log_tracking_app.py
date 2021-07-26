@@ -38,7 +38,7 @@ class BaseRecord:
         return dt.fromisoformat(timestamp[:-1])
 
     @staticmethod
-    def fetch_ip_info(ipaddr):
+    def fetch_ip_info_(ipaddr):
         if ipaddr is None:
             return
         resp = requests.get(f"https://ipinfo.io/{ipaddr}")
@@ -55,6 +55,25 @@ class BaseRecord:
             "timezone": data["timezone"],
             "org": data.get("org"),
         }
+
+    @staticmethod
+    def fetch_ip_info(ipaddr):
+        if ipaddr is None:
+            return
+        resp = requests.get(f"https://freegeoip.app/json/{ipaddr}")
+        if resp.status_code != 200:
+            return
+        data = resp.json()
+        ip_dct = {
+            "country": data["country_code"],
+            "region": data["region_code"],
+            "city": data["city"],
+            "zipcode": data["zip_code"],
+            "timezone": data["time_zone"],
+            "lat": data["latitude"],
+            "lon": data["longitude"],
+        }
+        return {k: v or None for k, v in ip_dct.items()}
 
     def as_dict(self):
         return {
@@ -155,6 +174,6 @@ if __name__ == "__main__":  # Local testing
     for en, rec in enumerate(stream_data()):
         entry = main(rec, prev_data, trailing_hrs)
         prev_data["stats"].append(entry["stats"])
-        if en == 400:
+        if en == 3:
             break
     prn(prev_data["stats"])
